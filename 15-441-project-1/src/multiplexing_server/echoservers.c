@@ -92,11 +92,11 @@ void check_client(pool *p) {
                 byte_cnt += n;
                 printf("Server received %d (%d total) bytes on fd %d\n", n, byte_cnt, connfd);
                 Rio_writen(connfd, buf, n);
+            } else {
+                Close(connfd);
+                FD_CLR(connfd, &p->read_set); // clear read_set instead of ready_set, ready_set is just the one to be read
+                p->clientfd[i] = -1;
             }
-        } else {
-            Close(connfd);
-            FD_CLR(connfd, &p->read_set); // clear read_set instead of ready_set, ready_set is just the one to be read
-            p->clientfd[i] = -1;
-        }
+        } 
     }
 }
