@@ -70,6 +70,8 @@ Request *parsing_request;
 %token t_sp
 %token t_ws
 %token t_ctl
+%token t_method
+%token t_http_version
 
 /* Type of value returned for these tokens */
 %type<str> t_crlf
@@ -84,6 +86,8 @@ Request *parsing_request;
 %type<i> t_sp
 %type<str> t_ws
 %type<i> t_ctl
+%type<str> t_method
+%type<str> t_http_version
 
 /*
  * Followed by this, you should have types defined for all the intermediate
@@ -197,7 +201,7 @@ t_ws {
 	snprintf($$, 8192, "%s", $1);
 };
 
-request_line: token t_sp text t_sp text t_crlf {
+request_line: t_method t_sp text t_sp t_http_version t_crlf {
 	YPRINTF("request_Line:\n%s\n%s\n%s\n",$1, $3,$5);
     strcpy(parsing_request->http_method, $1);
 	strcpy(parsing_request->http_uri, $3);

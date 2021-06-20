@@ -19,6 +19,11 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include "parse.h"
+
 #define ECHO_PORT 9999
 #define BUF_SIZE 4096
 
@@ -80,34 +85,36 @@ int main(int argc, char* argv[])
             fprintf(stderr, "Error accepting connection.\n");
             return EXIT_FAILURE;
         }
-
         readret = 0;
-
         while((readret = recv(client_sock, buf, BUF_SIZE, 0)) >= 1)
         {
-            if (send(client_sock, buf, readret, 0) != readret)
-            {
-                close_socket(client_sock);
-                close_socket(sock);
-                fprintf(stderr, "Error sending to client.\n");
-                return EXIT_FAILURE;
+            Request *request = parse(buf, readret, client_sock);
+            fprintf(stderr, "in parsing with readret %zd: \n", readret);
+            fprintf(stderr, "%s\n", buf);
+            if (request == NULL) {
+                send(client_sock, "HTTP/1.1 400 Bad Request\r\n\r\n", 50, 0);
+                break;
+            } else {
+                if (send(client_sock, buf, readret, 0) != readret) {
+                    fprintf(stderr, "Error sending to client.\n");
+                    break;
+                }
             }
+
             memset(buf, 0, BUF_SIZE);
         } 
-
+        
         if (readret == -1)
         {
             close_socket(client_sock);
-            close_socket(sock);
             fprintf(stderr, "Error reading from client socket.\n");
-            return EXIT_FAILURE;
+            continue;
         }
 
         if (close_socket(client_sock))
         {
-            close_socket(sock);
             fprintf(stderr, "Error closing client socket.\n");
-            return EXIT_FAILURE;
+            continue;
         }
     }
 
@@ -115,3 +122,4 @@ int main(int argc, char* argv[])
 
     return EXIT_SUCCESS;
 }
+

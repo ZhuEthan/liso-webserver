@@ -33,7 +33,7 @@ for i in xrange(numConnections):
     socketList.append(s)
 
 
-GOOD_REQUESTS = ['GET / HTTP/1.1\r\nUser-Agent: 441UserAgent/1.0.0\r\n\r\n']
+GOOD_REQUESTS = ['GET / HTTP/1.1\r\nUser-Agent: 441UserAgent/1.0.0\r\n\r\nmessage']
 BAD_REQUESTS = [
     'GET\r / HTTP/1.1\r\nUser-Agent: 441UserAgent/1.0.0\r\n\r\n', # Extra CR
     'GET / HTTP/1.1\nUser-Agent: 441UserAgent/1.0.0\r\n\r\n',     # Missing CR
@@ -47,8 +47,11 @@ for i in xrange(numTrials):
     randomData = []
     randomLen = []
     socketSubset = random.sample(socketList, numConnections)
+    random_string = ""
     for j in xrange(numWritesReads):
-        random_index = random.randrange(len(GOOD_REQUESTS) + len(BAD_REQUESTS))
+        random_index = 3 #random.randrange(len(GOOD_REQUESTS) + len(BAD_REQUESTS))
+        print("random_index")
+        print(random_index)
         if random_index < len(GOOD_REQUESTS):
             random_string = GOOD_REQUESTS[random_index]
             randomLen.append(len(random_string))
@@ -63,6 +66,12 @@ for i in xrange(numTrials):
         data = socketSubset[j].recv(randomLen[j])
         start_time = time.time()
         while True:
+            print("rece data: ")
+            print(data)
+            print("sent data: ")
+            print(random_string)
+            print("expected data: ")
+            print(randomData[j])
             if len(data) == randomLen[j]:
                 break
             socketSubset[j].settimeout(RECV_EACH_TIMEOUT)

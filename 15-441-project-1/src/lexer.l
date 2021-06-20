@@ -82,6 +82,7 @@ extern int parsing_offset;	/* Current offset in the buffer */
  * Declarations
  */
 
+
 /* Matches a digit. For e.g., 0, 8. */
 digit		[0-9]
 
@@ -120,6 +121,11 @@ ctl	[\x0-\x1f\x7f]
  */
 token_char      [\x0-\x7f]{-}[\x0-\x1f\x7f]{-}[\{\}\(\)\<\>@\,;:\\\"/\[\]?=\x20\x09]
 
+method			"HEAD"|"GET"|"POST"
+
+HTTP-Version	HTTP\/[1-9].[0-9]
+
+
 %%
 %{
 /*
@@ -134,6 +140,7 @@ token_char      [\x0-\x7f]{-}[\x0-\x1f\x7f]{-}[\{\}\(\)\<\>@\,;:\\\"/\[\]?=\x20\
  *         file for details.
  */
 %}
+
 
 "\\"	{
 	/* Rule 0: Backslash */
@@ -199,6 +206,15 @@ token_char      [\x0-\x7f]{-}[\x0-\x1f\x7f]{-}[\{\}\(\)\<\>@\,;:\\\"/\[\]?=\x20\
 	return t_ws;
 }
 
+{method} {
+	LPRINTF("t:method %s\n", yytext);
+
+	strcpy(yylval.str, yytext);
+	
+	return t_method;
+}
+
+
 {digit} {
 	/* Rule 5: A digit */
 
@@ -233,6 +249,7 @@ token_char      [\x0-\x7f]{-}[\x0-\x1f\x7f]{-}[\{\}\(\)\<\>@\,;:\\\"/\[\]?=\x20\
 	return t_separators;
 }
 
+
 {token_char} {
 	/* Rule 9: A character allowed in a token */
 
@@ -256,6 +273,13 @@ token_char      [\x0-\x7f]{-}[\x0-\x1f\x7f]{-}[\{\}\(\)\<\>@\,;:\\\"/\[\]?=\x20\
 	LPRINTF("t:ctl\n");
 	return t_ctl;
 }
+
+{HTTP-Version} {
+	LPRINTF("t:http-version \n");
+	strcpy(yylval.str, yytext);
+	return t_http_version;
+}
+
 
 %%
 
