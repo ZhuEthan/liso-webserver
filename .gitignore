@@ -1,0 +1,13 @@
+echo_client
+echo_server
+example
+obj/
+.vscode/
+../.vscode/
+src/lex.yy.c
+src/y.tab.c
+src/y.tab.h
+
+15-441-project-1/src/lex.yy.c
+15-441-project-1/src/y.tab.c
+15-441-project-1/src/y.tab.h
