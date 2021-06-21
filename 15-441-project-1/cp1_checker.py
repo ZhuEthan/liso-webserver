@@ -33,7 +33,10 @@ for i in xrange(numConnections):
     socketList.append(s)
 
 
-GOOD_REQUESTS = ['GET / HTTP/1.1\r\nUser-Agent: 441UserAgent/1.0.0\r\n\r\nmessage']
+GOOD_REQUESTS = [
+    'GET / HTTP/1.1\r\nUser-Agent: 441UserAgent/1.0.0\r\n\r\nmessage', 
+    'GET / HTTP/1.1\r\nHost: 127.0.0.1:9999\r\nConnection: keep-alive\r\nCache-Control: max-age=0\r\n\r\nmessage'
+]
 BAD_REQUESTS = [
     'GET\r / HTTP/1.1\r\nUser-Agent: 441UserAgent/1.0.0\r\n\r\n', # Extra CR
     'GET / HTTP/1.1\nUser-Agent: 441UserAgent/1.0.0\r\n\r\n',     # Missing CR
@@ -49,7 +52,7 @@ for i in xrange(numTrials):
     socketSubset = random.sample(socketList, numConnections)
     random_string = ""
     for j in xrange(numWritesReads):
-        random_index = 3 #random.randrange(len(GOOD_REQUESTS) + len(BAD_REQUESTS))
+        random_index = 1 #random.randrange(len(GOOD_REQUESTS) + len(BAD_REQUESTS))
         print("random_index")
         print(random_index)
         if random_index < len(GOOD_REQUESTS):

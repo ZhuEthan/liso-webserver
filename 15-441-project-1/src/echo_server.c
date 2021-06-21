@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
     }
 
 
-    if (listen(sock, 5))
+    if (listen(sock, 100))
     {
         close_socket(sock);
         fprintf(stderr, "Error listening on socket.\n");
@@ -77,32 +77,37 @@ int main(int argc, char* argv[])
     /* finally, loop waiting for input and then write it back */
     while (1)
     {
+        fprintf(stdout, "start listening again\n");
         cli_size = sizeof(cli_addr);
         if ((client_sock = accept(sock, (struct sockaddr *) &cli_addr,
                                     &cli_size)) == -1)
         {
             close(sock);
             fprintf(stderr, "Error accepting connection.\n");
-            return EXIT_FAILURE;
+            continue;
         }
-        readret = 0;
-        while((readret = recv(client_sock, buf, BUF_SIZE, 0)) >= 1)
-        {
+        fprintf(stdout, "accept client_sock %d already\n", client_sock);
+        memset(buf, 0, BUF_SIZE);
+        while ((readret = recv(client_sock, buf, BUF_SIZE, 0)) >= 1) {
             Request *request = parse(buf, readret, client_sock);
-            fprintf(stderr, "in parsing with readret %zd: \n", readret);
-            fprintf(stderr, "%s\n", buf);
+            fprintf(stdout, "in parsing with readret %zd: \n", readret);
+            fprintf(stdout, "%s\n", buf);
+            fprintf(stdout, "succeed\n");
             if (request == NULL) {
-                send(client_sock, "HTTP/1.1 400 Bad Request\r\n\r\n", 50, 0);
+                send(client_sock, "HTTP/1.1 400 Bad Request\r\n\r\n", 1000, 0);
                 break;
             } else {
                 if (send(client_sock, buf, readret, 0) != readret) {
                     fprintf(stderr, "Error sending to client.\n");
                     break;
+                } else {
+                    fprintf(stdout, "send finished!");
                 }
             }
 
             memset(buf, 0, BUF_SIZE);
         } 
+        fprintf(stdout, "get our of the loop\n");
         
         if (readret == -1)
         {
@@ -122,4 +127,5 @@ int main(int argc, char* argv[])
 
     return EXIT_SUCCESS;
 }
+
 

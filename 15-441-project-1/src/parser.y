@@ -222,10 +222,18 @@ request_header: token ows t_colon ows text ows t_crlf {
  * All the best!
  *
  */
-request: request_line request_header t_crlf{
-	YPRINTF("parsing_request: Matched Success.\n");
+
+request_no_tcrlf: request_line request_header {
+	YPRINTF("parsing_request: Matched request_no_tcrlf rule1.\n");
+}; | request_no_tcrlf request_header {
+	YPRINTF("parsing_request: Matched request_no_tcrlf rule2.\n");
+}
+
+
+request: request_no_tcrlf t_crlf{
+	YPRINTF("parsing_request: Matched request rule1.\n");
 	return SUCCESS;
-};
+}; 
 
 %%
 
