@@ -15,6 +15,8 @@ Request * parse(char *buffer, int size, int socketFd) {
 	char buf[8192];
 	memset(buf, 0, 8192);
 
+	int crlf_num = 0;
+
 	state = STATE_START;
 	while (state != STATE_CRLFCRLF) {
 		char expected = 0;
@@ -32,6 +34,7 @@ Request * parse(char *buffer, int size, int socketFd) {
 			break;
 		case STATE_CR:
 		case STATE_CRLFCR:
+			crlf_num += 1;
 			expected = '\n';
 			break;
 		default:
@@ -51,7 +54,8 @@ Request * parse(char *buffer, int size, int socketFd) {
 		Request *request = (Request *) malloc(sizeof(Request));
         request->header_count=0;
         //TODO You will need to handle resizing this in parser.y
-        request->headers = (Request_header *) malloc(sizeof(Request_header)*1);
+		printf("request->header number is %d\n", crlf_num-2);
+        request->headers = (Request_header *) malloc(sizeof(Request_header)*(crlf_num-2));
 		set_parsing_options(buf, i, request);
 
 		if (yyparse() == SUCCESS) {
