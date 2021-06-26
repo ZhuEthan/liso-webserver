@@ -32,10 +32,10 @@ for i in xrange(numConnections):
     s.connect((serverHost, serverPort))
     socketList.append(s)
 
-#
+#'GET / HTTP/1.1\r\nHost: 127.0.0.1:9999\r\nConnection: keep-alive\r\nCache-Control: max-age=0\r\n\r\nmessage'
 GOOD_REQUESTS = [
     'GET / HTTP/1.1\r\nUser-Agent: 441UserAgent/1.0.0\r\n\r\nmessage', 
-    'GET / HTTP/1.1\r\nHost: 127.0.0.1:9999\r\nConnection: keep-alive\r\nCache-Control: max-age=0\r\n\r\nmessage'
+    'GET / HTTP/1.1\r\n\r\n\r\n'
 ]
 BAD_REQUESTS = [
     'GET\r / HTTP/1.1\r\nUser-Agent: 441UserAgent/1.0.0\r\n\r\n', # Extra CR

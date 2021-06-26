@@ -1,5 +1,6 @@
 #include "parse.h"
 
+#define MAX(X, Y) (((X) < (Y)) ? (Y) : (X))
 /**
 * Given a char buffer returns the parsed request headers
 */
@@ -55,7 +56,7 @@ Request * parse(char *buffer, int size, int socketFd) {
         request->header_count=0;
         //TODO You will need to handle resizing this in parser.y
 		printf("request->header number is %d\n", crlf_num-2);
-        request->headers = (Request_header *) malloc(sizeof(Request_header)*(crlf_num-2));
+        request->headers = (Request_header *) malloc(sizeof(Request_header)*MAX(0, crlf_num-2));
 		set_parsing_options(buf, i, request);
 
 		if (yyparse() == SUCCESS) {

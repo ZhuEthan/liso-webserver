@@ -227,6 +227,8 @@ request_no_tcrlf: request_line request_header {
 	YPRINTF("parsing_request: Matched request_no_tcrlf rule1.\n");
 }; | request_no_tcrlf request_header {
 	YPRINTF("parsing_request: Matched request_no_tcrlf rule2.\n");
+}; | request_line {
+	YPRINTF("parsing_request: Matched request_no_tcrlf rule3.\n");
 }
 
 
