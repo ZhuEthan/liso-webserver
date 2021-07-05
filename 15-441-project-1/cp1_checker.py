@@ -34,7 +34,8 @@ for i in xrange(numConnections):
 
 #'GET / HTTP/1.1\r\nHost: 127.0.0.1:9999\r\nConnection: keep-alive\r\nCache-Control: max-age=0\r\n\r\nmessage'
 GOOD_REQUESTS = [
-    'GET / HTTP/1.1\r\nUser-Agent: 441UserAgent/1.0.0\r\n\r\nmessage', 
+    #'m\n',
+    'GET / HTTP/1.1\r\nUser-Agent: 441UserAgent/1.0.0\r\n\r\nmessage\n', # fo the message, we should use readn instead of readlinen
     'GET / HTTP/1.1\r\n\r\n\r\n'
 ]
 BAD_REQUESTS = [
@@ -52,7 +53,7 @@ for i in xrange(numTrials):
     socketSubset = random.sample(socketList, numConnections)
     random_string = ""
     for j in xrange(numWritesReads):
-        random_index = random.randrange(len(GOOD_REQUESTS) + len(BAD_REQUESTS))
+        random_index = 0#random.randrange(len(GOOD_REQUESTS) + len(BAD_REQUESTS))
         print("random_index")
         print(random_index)
         if random_index < len(GOOD_REQUESTS):
@@ -69,16 +70,16 @@ for i in xrange(numTrials):
         data = socketSubset[j].recv(randomLen[j])
         start_time = time.time()
         while True:
-            print("rece data: ")
-            print(data)
-            print("sent data: ")
-            print(random_string)
-            print("expected data: ")
-            print(randomData[j])
+            #print("sent data: ")
+            #print(random_string)
+            #print("expected data with len ", randomLen[j])
+            #print(randomData[j])
             if len(data) == randomLen[j]:
                 break
             socketSubset[j].settimeout(RECV_EACH_TIMEOUT)
             data += socketSubset[j].recv(randomLen[j])
+            #print("rece data: ")
+            #print(data)
             if time.time() - start_time > RECV_TOTAL_TIMEOUT:
                 break
         if data != randomData[j]:
@@ -88,4 +89,4 @@ for i in xrange(numTrials):
 for i in xrange(numConnections):
     socketList[i].close()
 
-print "Success!"
+print("Success!")
