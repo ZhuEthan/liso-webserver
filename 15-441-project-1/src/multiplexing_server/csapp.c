@@ -9,6 +9,14 @@ ssize_t Rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen)
     return rc;
 } 
 
+ssize_t Rio_readn(int fd, void *usrbuf, size_t n) {
+    ssize_t rc;
+
+    if ((rc = rio_readn(fd, usrbuf, n)) < 0) {
+        unix_error("Rio_readn error");
+    }
+}
+
 
 /* 
  * rio_readlineb - Robustly read a text line (buffered)

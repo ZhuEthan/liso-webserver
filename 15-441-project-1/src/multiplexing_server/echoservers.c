@@ -1,4 +1,5 @@
 #include "csapp.h"
+#include "parse.h"
 
 int byte_cnt = 0;
 
@@ -79,16 +80,29 @@ void check_client(pool *p) {
 
         if (connfd > 0 && (FD_ISSET(connfd, &p->ready_set))) {
             p->nready--;
-            while ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0) {
-                byte_cnt += n;
-                printf("Server received %d (%d total) bytes on fd %d\n", n, byte_cnt, connfd);
-                Rio_writen(connfd, buf, n);
-                printf("send %s\n", buf);
+            //while ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0) {
+            while ((n = Rio_readn(connfd, rio.rio_buf, MAXLINE))) {
+                Request *request = parse(buf, n, connfd);
+                if (request == NULL) {
+                    send(connfd, "HTTP/1.1 400 Bad Request\r\n\r\n", 1000, 0);
+                    break;
+                } else {
+                    if (send(connfd, buf, n, 0) != n) {
+                        byte_cnt += n;
+                        printf("Server received %d (%d total) bytes on fd %d\n", n, byte_cnt, connfd);
+                        fprintf(stderr, "Error sending to client.\n");
+                        break;
+                    } else {
+                        fprintf(stdout, "send finished!");
+                    }
+                }
+                //Rio_writen(connfd, buf, n);
+                //printf("send %s\n", buf);
                 memset(buf, 0, sizeof(buf));
             } 
-                Close(connfd);
-                FD_CLR(connfd, &p->read_set); // clear read_set instead of ready_set, ready_set is just the one to be read
-                p->clientfd[i] = -1;
+            Close(connfd);
+            FD_CLR(connfd, &p->read_set); // clear read_set instead of ready_set, ready_set is just the one to be read
+            p->clientfd[i] = -1;
             
         } 
     }
