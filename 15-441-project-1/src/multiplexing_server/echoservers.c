@@ -21,8 +21,9 @@ int main(int argc, char **argv) {
         pool.ready_set = pool.read_set; // only ready_set is being updated by Select(side effect of Select), read_set is the ones to be watched
         pool.nready = Select(pool.maxfd+1, &pool.ready_set, NULL, NULL, NULL);
 
-        printf("after selecting with %x\n", pool.nready);
+        printf("nready is %x\n", pool.nready);
         if (FD_ISSET(listenfd, &pool.ready_set)) {
+            printf("accept listenfd %d\n", listenfd);
             connfd = Accept(listenfd, (SA*)&clientaddr, &clientlen);
             add_client(connfd, &pool);
         }
@@ -72,22 +73,25 @@ void add_client(int connfd, pool *p) {
 void check_client(pool *p) {
     int i, connfd, n;
     char buf[MAXLINE];
-    rio_t rio;
+    rio_t* rio;
 
+    printf("p->nready %d\n", p->nready);
     for (i = 0; i <= p->maxi && p->nready > 0; i++) {
         connfd = p->clientfd[i];
-        rio=p->clientrio[i];
+        rio=&(p->clientrio[i]);
 
         if (connfd > 0 && (FD_ISSET(connfd, &p->ready_set))) {
             p->nready--;
             //while ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0) {
-            while ((n = Rio_readn(connfd, rio.rio_buf, MAXLINE))) {
-                Request *request = parse(buf, n, connfd);
+            if ((n = Rio_read(rio, rio->rio_buf, MAXLINE)) != 0) {
+                printf("inside reading loop\n");
+                Request *request = parse(rio->rio_buf, n, connfd);
                 if (request == NULL) {
+                    printf("request is null");
                     send(connfd, "HTTP/1.1 400 Bad Request\r\n\r\n", 1000, 0);
                     break;
                 } else {
-                    if (send(connfd, buf, n, 0) != n) {
+                    if (send(connfd, rio->rio_buf, n, 0) != n) {
                         byte_cnt += n;
                         printf("Server received %d (%d total) bytes on fd %d\n", n, byte_cnt, connfd);
                         fprintf(stderr, "Error sending to client.\n");
@@ -100,10 +104,10 @@ void check_client(pool *p) {
                 //printf("send %s\n", buf);
                 memset(buf, 0, sizeof(buf));
             } 
-            Close(connfd);
+            //Close(connfd);
+            //TODO: Closing fd logic
             FD_CLR(connfd, &p->read_set); // clear read_set instead of ready_set, ready_set is just the one to be read
             p->clientfd[i] = -1;
-            
         } 
     }
 }

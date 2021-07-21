@@ -15,6 +15,18 @@ ssize_t Rio_readn(int fd, void *usrbuf, size_t n) {
     if ((rc = rio_readn(fd, usrbuf, n)) < 0) {
         unix_error("Rio_readn error");
     }
+
+    return rc;
+}
+
+ssize_t Rio_read(rio_t *rp, void *usrbuf, size_t n) {
+    ssize_t rc;
+
+    if ((rc = rio_read(rp, usrbuf, n)) < 0) {
+        unix_error("Rio_read error");
+    }
+
+    return rc;
 }
 
 
