@@ -18,3 +18,6 @@ message-body SHOULD be ignored when handling the request.
 > Yes, you may reject any header line larger than 8192 bytes. Note that this is different than a “Content- Length” of greater than 8192. Additionally, if you do reject a request, you must find and parse the next request properly for pipelining purposes
 
 * How to switch among multiple connections? Now it doesn't consider a lot. 
+
+## Appendix
+* Client/Server call sequence is as [here](https://www.cs.dartmouth.edu/~campbell/cs50/socketprogramming.html). Worth noticing is that server must have a "read" before close() after client close related socket. 

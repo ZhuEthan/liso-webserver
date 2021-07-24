@@ -96,7 +96,6 @@ void check_client(pool *p) {
                     Rio_writen(connfd, BAD_REQUEST, strlen(BAD_REQUEST));
                     //fprintf(stderr, "Error sending to client.\n");
                     //close_connection(p, connfd, i);
-                    //break;
                 } else {
                     Rio_writen(connfd, rio->rio_buf, n); 
                     byte_cnt += n;
@@ -104,6 +103,7 @@ void check_client(pool *p) {
                     //close_connection(p, connfd, i);
                 }
             } //client closes the connection
+            sleep(3);
             close_connection(p, connfd, i);
             //TODO: Closing fd logic
         } 
