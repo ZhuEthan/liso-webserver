@@ -2,6 +2,13 @@
 #include "parse.h"
 
 int byte_cnt = 0;
+char* BAD_REQUEST = "HTTP/1.1 400 Bad Request\r\n\r\n";
+
+void close_connection(pool* p, int connfd, int fdIndex) {
+    Close(connfd);
+    FD_CLR(connfd, &p->read_set);// clear read_set instead of ready_set, ready_set is just the one to be read
+    p->clientfd[fdIndex] = -1;
+}
 
 int main(int argc, char **argv) {
     int listenfd, connfd, port;
@@ -23,7 +30,7 @@ int main(int argc, char **argv) {
 
         printf("nready is %x\n", pool.nready);
         if (FD_ISSET(listenfd, &pool.ready_set)) {
-            printf("accept listenfd %d\n", listenfd);
+            fprintf(stdout, "accept listenfd %d\n", listenfd);
             connfd = Accept(listenfd, (SA*)&clientaddr, &clientlen);
             add_client(connfd, &pool);
         }
@@ -72,10 +79,9 @@ void add_client(int connfd, pool *p) {
 
 void check_client(pool *p) {
     int i, connfd, n;
-    char buf[MAXLINE];
     rio_t* rio;
 
-    printf("p->nready %d\n", p->nready);
+    fprintf(stdout, "p->nready %d\n", p->nready);
     for (i = 0; i <= p->maxi && p->nready > 0; i++) {
         connfd = p->clientfd[i];
         rio=&(p->clientrio[i]);
@@ -83,31 +89,25 @@ void check_client(pool *p) {
         if (connfd > 0 && (FD_ISSET(connfd, &p->ready_set))) {
             p->nready--;
             //while ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0) {
-            if ((n = Rio_read(rio, rio->rio_buf, MAXLINE)) != 0) {
-                printf("inside reading loop\n");
+            while ((n = Rio_read(rio, rio->rio_buf, MAXLINE)) != 0) {
+                fprintf(stdout, "inside reading loop\n");
                 Request *request = parse(rio->rio_buf, n, connfd);
                 if (request == NULL) {
-                    printf("request is null");
-                    send(connfd, "HTTP/1.1 400 Bad Request\r\n\r\n", 1000, 0);
-                    break;
+                    Rio_writen(connfd, BAD_REQUEST, strlen(BAD_REQUEST));
+                    //fprintf(stderr, "Error sending to client.\n");
+                    //close_connection(p, connfd, i);
+                    //break;
                 } else {
-                    if (send(connfd, rio->rio_buf, n, 0) != n) {
-                        byte_cnt += n;
-                        printf("Server received %d (%d total) bytes on fd %d\n", n, byte_cnt, connfd);
-                        fprintf(stderr, "Error sending to client.\n");
-                        break;
-                    } else {
-                        fprintf(stdout, "send finished!");
-                    }
+                    Rio_writen(connfd, rio->rio_buf, n); 
+                    byte_cnt += n;
+                    fprintf(stdout, "Server received %d (%d total) bytes on fd %d\n", n, byte_cnt, connfd);
+                    //close_connection(p, connfd, i);
                 }
-                //Rio_writen(connfd, buf, n);
-                //printf("send %s\n", buf);
-                memset(buf, 0, sizeof(buf));
-            } 
-            //Close(connfd);
+            } //client closes the connection
+            close_connection(p, connfd, i);
             //TODO: Closing fd logic
-            FD_CLR(connfd, &p->read_set); // clear read_set instead of ready_set, ready_set is just the one to be read
-            p->clientfd[i] = -1;
         } 
     }
 }
+
+
