@@ -86,7 +86,7 @@ for i in xrange(numTrials):
             sys.stderr.write("Error: Data received is not the same as sent! \n")
             sys.exit(1)
 
-#for i in xrange(numConnections):
-    #socketList[i].close()
+for i in xrange(numConnections):
+    socketList[i].close()
 
 print("Success!")
