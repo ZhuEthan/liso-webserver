@@ -60,6 +60,11 @@ Request * parse(char *buffer, int size, int socketFd) {
 		set_parsing_options(buf, i, request);
 
 		if (yyparse() == SUCCESS) {
+			if (request->content_length > 0) {
+				memcpy(request->message_body, buffer+offset, request->content_length);
+				printf("request content length %d\n", request->content_length);
+				printf("request content: %s\n", request->message_body);
+			}
             return request;
 		}
 	}

@@ -8,7 +8,7 @@
 #include "parse.h"
 
 /* Define YACCDEBUG to enable debug messages for this lex file */
-//#define YACCDEBUG
+#define YACCDEBUG
 #define YYERROR_VERBOSE
 #ifdef YACCDEBUG
 #include <stdio.h>
@@ -209,9 +209,14 @@ request_line: t_method t_sp text t_sp t_http_version t_crlf {
 }
 
 request_header: token ows t_colon ows text ows t_crlf {
-	YPRINTF("request_Header:\n%s\n%s\n",$1,$5);
+	YPRINTF("request_Header:\n%s : %s\n",$1,$5);
     strcpy(parsing_request->headers[parsing_request->header_count].header_name, $1);
 	strcpy(parsing_request->headers[parsing_request->header_count].header_value, $5);
+	if (strcmp("Content-Length", $1) == 0) {
+		parsing_request->content_length = atoi($5);
+		parsing_request->message_body = (char*)malloc(parsing_request->content_length*sizeof(char));
+		YPRINTF("Content_Length: %d\n", parsing_request->content_length);
+	}
 	parsing_request->header_count++;
 };
 
@@ -224,18 +229,19 @@ request_header: token ows t_colon ows text ows t_crlf {
  */
 
 request_no_tcrlf: request_line request_header {
-	YPRINTF("parsing_request: Matched request_no_tcrlf rule1.\n");
+	YPRINTF("parsing_request: Matched request_no_tcrlf rule.\n");
 }; | request_no_tcrlf request_header {
-	YPRINTF("parsing_request: Matched request_no_tcrlf rule2.\n");
+	YPRINTF("parsing_request: Matched request_no_tcrlf with multiple headers.\n");
 }; | request_line {
-	YPRINTF("parsing_request: Matched request_no_tcrlf rule3.\n");
-}
+	YPRINTF("parsing_request: Matched request_no_tcrlf with no headers.\n");
+};
 
 
-request: request_no_tcrlf t_crlf{
+request: request_no_tcrlf t_crlf {
 	YPRINTF("parsing_request: Matched request rule1.\n");
 	return SUCCESS;
 }; 
+
 
 %%
 
