@@ -5,9 +5,9 @@ int byte_cnt = 0;
 char* BAD_REQUEST = "HTTP/1.1 400 Bad Request\r\n\r\n";
 
 void close_connection(pool* p, int connfd, int fdIndex) {
-    Close(connfd);
     FD_CLR(connfd, &p->read_set);// clear read_set instead of ready_set, ready_set is just the one to be read
     p->clientfd[fdIndex] = -1;
+    Close(connfd);
 }
 
 int main(int argc, char **argv) {
@@ -52,6 +52,7 @@ void init_pool(int listenfd, pool *p) {
     FD_SET(listenfd, &p->read_set);
 }
 
+
 void add_client(int connfd, pool *p) {
     int i;
     p->nready--;
@@ -89,19 +90,20 @@ void check_client(pool *p) {
         if (connfd > 0 && (FD_ISSET(connfd, &p->ready_set))) {
             p->nready--;
             //while ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0) {
-            while ((n = Rio_read(rio, rio->rio_buf, MAXLINE)) != 0) {
+            if ((n = Rio_read(rio, rio->rio_buf, MAXLINE)) != 0) {
                 fprintf(stdout, "inside reading loop\n");
-                //TODO: parse the request and get contentLength;
                 Request *request = parse(rio->rio_buf, n, connfd);
                 if (request == NULL) {
                     Rio_writen(connfd, BAD_REQUEST, strlen(BAD_REQUEST));
                 } else {
+                    //int content_length = request->content_length;
                     Rio_writen(connfd, rio->rio_buf, n); 
                     byte_cnt += n;
                     fprintf(stdout, "Server received %d (%d total) bytes on fd %d\n", n, byte_cnt, connfd);
                 }
-            } 
-            close_connection(p, connfd, i);
+            } else {
+                close_connection(p, connfd, i);
+            }
         } 
     }
 }
