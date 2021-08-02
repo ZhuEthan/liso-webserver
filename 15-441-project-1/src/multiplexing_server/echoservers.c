@@ -7,6 +7,7 @@ char* BAD_REQUEST = "HTTP/1.1 400 Bad Request\r\n\r\n";
 void close_connection(pool* p, int connfd, int fdIndex) {
     FD_CLR(connfd, &p->read_set);// clear read_set instead of ready_set, ready_set is just the one to be read
     p->clientfd[fdIndex] = -1;
+    p->clientContinueReadFlag[fdIndex] = 0;
     Close(connfd);
 }
 
@@ -45,6 +46,7 @@ void init_pool(int listenfd, pool *p) {
     p->maxi = -1;
     for (i = 0; i < FD_SETSIZE; i++) {
         p->clientfd[i] = -1;
+        p->clientContinueReadFlag[i] = 0;
     }
 
     p->maxfd = listenfd;
@@ -89,18 +91,38 @@ void check_client(pool *p) {
 
         if (connfd > 0 && (FD_ISSET(connfd, &p->ready_set))) {
             p->nready--;
-            //while ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0) {
             if ((n = Rio_read(rio, rio->rio_buf, MAXLINE)) != 0) {
-                fprintf(stdout, "inside reading loop\n");
-                Request *request = parse(rio->rio_buf, n, connfd);
-                if (request == NULL) {
-                    Rio_writen(connfd, BAD_REQUEST, strlen(BAD_REQUEST));
+                fprintf(stdout, "reading %d chars %s", n, rio->rio_buf);
+                Request *request = NULL;
+                if (p->clientContinueReadFlag[i] == 0) {
+                    request = parse(rio->rio_buf, n, connfd);
+                    if (request == NULL) {
+                        Rio_writen(connfd, BAD_REQUEST, strlen(BAD_REQUEST));
+                    } else {
+                        if (request->message_body != NULL && strlen(request->message_body) < request->content_length) {
+                            printf("request->message\n");
+                            printf("message_body %d, request->content_length %d\n", strlen(request->message_body), request->content_length);
+                            p->clientContinueReadFlag[i] = request->content_length - strlen(request->message_body);
+                            //request->content_length -= strlen(request->message_body);
+                        }
+                        Rio_writen(connfd, rio->rio_buf, n); 
+                        byte_cnt += n;
+                        fprintf(stdout, "Server received %d (%d total) bytes on fd %d\n", n, byte_cnt, connfd);
+                    }
                 } else {
-                    //int content_length = request->content_length;
+                    //TODO: keep track of remaining message length: pool->remaining length, 
                     Rio_writen(connfd, rio->rio_buf, n); 
+                    p->clientContinueReadFlag[i] -= n;
                     byte_cnt += n;
                     fprintf(stdout, "Server received %d (%d total) bytes on fd %d\n", n, byte_cnt, connfd);
-                }
+                } 
+                //TODO: how to deal with request with length greater than 8196?
+                //https://stackoverflow.com/questions/2862071/how-large-should-my-recv-buffer-be-when-calling-recv-in-the-socket-library
+                //int content_length = request->content_length;
+                //p->clientContinueReadFlag[i] = 1;
+                //Rio_writen(connfd, rio->rio_buf, n); 
+                //byte_cnt += n;
+                //fprintf(stdout, "Server received %d (%d total) bytes on fd %d\n", n, byte_cnt, connfd);
             } else {
                 close_connection(p, connfd, i);
             }

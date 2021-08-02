@@ -76,10 +76,10 @@ for i in xrange(numTrials):
             #print(randomData[j])
             if len(data) == randomLen[j]:
                 break
-            socketSubset[j].settimeout(RECV_EACH_TIMEOUT)
+            #socketSubset[j].settimeout(RECV_EACH_TIMEOUT)
             data += socketSubset[j].recv(randomLen[j])
-            if time.time() - start_time > RECV_TOTAL_TIMEOUT:
-                break
+            #if time.time() - start_time > RECV_TOTAL_TIMEOUT:
+                #break
         if data != randomData[j]:
             print("rece data: ")
             print(data)

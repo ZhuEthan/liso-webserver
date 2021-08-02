@@ -3,6 +3,10 @@
 
 > ./select_server 9999
 
+> ab -n 10 -c 10 http://127.0.0.1:9999/
+
+> python cp1_checker.py 127.0.0.1 9999 100 10 10
+
 ## TODO: 
 * Current implementation can only handle message body with \n, however, the HTTP [RFC](https://www.ietf.org/rfc/rfc2616.txt) allows message body ending without \n. hint: readn based on Content-Length instead of readline to be used. 
 
@@ -20,4 +24,4 @@ message-body SHOULD be ignored when handling the request.
 * How to switch among multiple connections? Now it doesn't consider a lot. 
 
 ## Appendix
-* Client/Server call sequence is as [here](https://www.cs.dartmouth.edu/~campbell/cs50/socketprogramming.html). Worth noticing is that server must have a "read" before close() after client close related socket. 
+* Client/Server call sequence is as [here](https://www.cs.dartmouth.edu/~campbell/cs50/socketprogramming.html). Notice that server must have a "read" before close() after client close related socket. 

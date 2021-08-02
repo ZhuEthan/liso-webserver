@@ -69,7 +69,7 @@ Request * parse(char *buffer, int size, int socketFd) {
 		}
 	}
     //TODO Handle Malformed Requests
-	YY_BUFFER_STATE bufferstate = yy_create_buffer(NULL, 16384);
+	YY_BUFFER_STATE bufferstate = yy_create_buffer(NULL, 8192);
 	yy_switch_to_buffer(bufferstate);
     printf("Parsing Failed\n");
 	return NULL;
