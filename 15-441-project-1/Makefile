@@ -1,5 +1,6 @@
 SRC_DIR := src
 OBJ_DIR := obj
+UTIL_DIR := obj/util
 EXP_DIR := src/multiplexing_server
 # all src files
 SRC := $(wildcard $(SRC_DIR)/*.c)
@@ -10,7 +11,7 @@ OBJ := $(OBJ_DIR)/y.tab.o $(OBJ_DIR)/lex.yy.o $(OBJ_DIR)/parse.o $(OBJ_DIR)/exam
 #Server Objects
 SERVER_OBJ := $(OBJ_DIR)/y.tab.o $(OBJ_DIR)/lex.yy.o $(OBJ_DIR)/parse.o $(OBJ_DIR)/echo_server.o
 
-EXP_OBJ := $(OBJ_DIR)/y.tab.o $(OBJ_DIR)/lex.yy.o $(OBJ_DIR)/parse.o $(OBJ_DIR)/echoservers.o $(OBJ_DIR)/csapp.o
+EXP_OBJ := $(OBJ_DIR)/y.tab.o $(OBJ_DIR)/lex.yy.o $(OBJ_DIR)/parse.o $(OBJ_DIR)/echoservers.o $(OBJ_DIR)/csapp.o $(UTIL_DIR)/log.o
 
 #Client Objects
 CLIENT_OBJ := $(OBJ_DIR)/y.tab.o $(OBJ_DIR)/lex.yy.o $(OBJ_DIR)/parse.o $(OBJ_DIR)/echo_client.o
@@ -42,6 +43,9 @@ $(SRC_DIR)/y.tab.c: $(SRC_DIR)/parser.y
 $(OBJ_DIR)/echoservers.o: $(EXP_DIR)/echoservers.c $(OBJ_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
+$(UTIL_DIR)/%.o: $(EXP_DIR)/util/%.c $(OBJ_DIR) $(UTIL_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
 $(OBJ_DIR)/csapp.o: $(EXP_DIR)/csapp.c $(OBJ_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
@@ -58,6 +62,9 @@ echo_client: $(CLIENT_OBJ)
 	$(CC) -Werror $^ -o $@
 
 $(OBJ_DIR):
+	mkdir $@
+
+$(UTIL_DIR):
 	mkdir $@
 
 clean:

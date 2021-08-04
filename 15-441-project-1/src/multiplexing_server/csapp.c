@@ -9,10 +9,10 @@ ssize_t Rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen)
     return rc;
 } 
 
-ssize_t Rio_readn(int fd, void *usrbuf, size_t n) {
+ssize_t Rio_readn(rio_t* rio, void *usrbuf, size_t n) {
     ssize_t rc;
 
-    if ((rc = rio_readn(fd, usrbuf, n)) < 0) {
+    if ((rc = rio_readn(rio, usrbuf, n)) < 0) {
         unix_error("Rio_readn error");
     }
 
@@ -95,13 +95,13 @@ ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n)
 }
 
 
-ssize_t rio_readn(int fd, void *usrbuf, size_t n) {
+ssize_t rio_readn(rio_t* rio, void *usrbuf, size_t n) {
     size_t nleft = n;
     ssize_t nread;
     char* bufp = usrbuf;
 
     while (nleft > 0) {
-        if ((nread = read(fd, bufp, nleft)) < 0) {
+        if ((nread = rio_read(rio, bufp, nleft)) < 0) {
             if (errno == EINTR) {
                 nread = 0;
             } else {
@@ -171,6 +171,10 @@ int open_listenfd(int port) {
         fprintf(stderr, "Failed creating socket.\n");
         return EXIT_FAILURE;
     }
+
+    int flags = fcntl(listenfd, F_GETFL); //"could not get file flags";
+    fcntl(listenfd, F_SETFL, flags | O_NONBLOCK); //"could not set file flags";
+
 
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);

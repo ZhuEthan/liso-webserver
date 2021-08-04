@@ -23,6 +23,8 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <stdarg.h>
+#include <fcntl.h>
 
 
 /* Default file permissions are DEF_MODE & ~DEF_UMASK */
@@ -38,7 +40,8 @@ typedef struct sockaddr SA;
 
 /* Persistent state for the robust I/O (Rio) package */
 /* $begin rio_t */
-#define RIO_BUFSIZE 70
+//#define RIO_BUFSIZE 70
+#define RIO_BUFSIZE 8192
 typedef struct {
     int rio_fd;                /* Descriptor for this internal buf */
     int rio_cnt;               /* Unread bytes in internal buf */
@@ -53,7 +56,8 @@ extern int h_errno;    /* Defined by BIND for DNS errors */
 extern char **environ; /* Defined by libc */
 
 /* Misc constants */
-#define	MAXLINE	 70/* Max text line length */
+//#define	MAXLINE	 70/* Max text line length */
+#define	MAXLINE	 8192/* Max text line length */
 #define MAXBUF   8192  /* Max I/O buffer size */
 #define LISTENQ  1024  /* Second argument to listen() */
 
@@ -145,7 +149,7 @@ int Accept(int s, struct sockaddr *addr, socklen_t *addrlen);
 
 /* Rio (Robust I/O) package */
 ssize_t rio_read(rio_t *rp, char *usrbuf, size_t n);
-ssize_t rio_readn(int fd, void *usrbuf, size_t n);
+ssize_t rio_readn(rio_t* rio, void *usrbuf, size_t n);
 ssize_t rio_writen(int fd, void *usrbuf, size_t n);
 void rio_readinitb(rio_t *rp, int fd); 
 ssize_t	rio_readnb(rio_t *rp, void *usrbuf, size_t n);
@@ -153,7 +157,7 @@ ssize_t	rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen);
 
 /* Wrappers for Rio package */
 ssize_t Rio_read(rio_t *rp, void *usrbuf, size_t n);
-ssize_t Rio_readn(int fd, void *usrbuf, size_t n);
+ssize_t Rio_readn(rio_t* rio, void *usrbuf, size_t n);
 void Rio_writen(int fd, void *usrbuf, size_t n);
 void Rio_readinitb(rio_t *rp, int fd); 
 ssize_t Rio_readnb(rio_t *rp, void *usrbuf, size_t n);
@@ -176,14 +180,14 @@ typedef struct { // Represents a pool of connected descriptors
     int nready; // Number of ready descriptors from select
     int maxi; // Highwater index into client array
     int clientfd[FD_SETSIZE]; // Set of active descriptors
-    int clientContinueReadFlag[FD_SETSIZE];
+    int clientReadingLeft[FD_SETSIZE];
     rio_t clientrio[FD_SETSIZE]; // Set of active read buffers
 } pool;
-
 
 void init_pool(int listenfd, pool *p); 
 void add_client(int connfd, pool *p);
 void check_client(pool *p);
+
 
 
 #endif /* __CSAPP_H__ */

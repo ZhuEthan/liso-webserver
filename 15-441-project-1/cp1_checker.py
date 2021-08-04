@@ -65,6 +65,8 @@ for i in xrange(numTrials):
             randomLen.append(len(BAD_REQUEST_RESPONSE))
             randomData.append(BAD_REQUEST_RESPONSE)
         socketSubset[j].send(random_string)
+        #socketSubset[j].send(random_string)
+        #socketSubset[j].send(random_string)
 
     for j in xrange(numWritesReads):
         data = socketSubset[j].recv(randomLen[j])
@@ -78,6 +80,8 @@ for i in xrange(numTrials):
                 break
             #socketSubset[j].settimeout(RECV_EACH_TIMEOUT)
             data += socketSubset[j].recv(randomLen[j])
+            print("receive data: \n")
+            print(data)
             #if time.time() - start_time > RECV_TOTAL_TIMEOUT:
                 #break
         if data != randomData[j]:
