@@ -17,7 +17,12 @@ int main(int argc, char **argv) {
     socklen_t clientlen = sizeof(struct sockaddr_in);
     struct sockaddr_in clientaddr;
     static pool pool;
+    struct timeval timeout;
+
     init_log();
+    timeout.tv_sec  = 0.01;
+    timeout.tv_usec = 0;
+
 
     if (argc != 2) {
         fprintf(stderr, "usage: %s <port>\n", argv[0]);
@@ -29,9 +34,8 @@ int main(int argc, char **argv) {
     init_pool(listenfd, &pool);
     while (1) {
         pool.ready_set = pool.read_set; // only ready_set is being updated by Select(side effect of Select), read_set is the ones to be watched
-        pool.nready = Select(pool.maxfd+1, &pool.ready_set, NULL, NULL, NULL);
+        pool.nready = Select(pool.maxfd+1, &pool.ready_set, NULL, NULL, &timeout);
 
-        printf("nready is %x\n", pool.nready);
         if (FD_ISSET(listenfd, &pool.ready_set)) {
             fprintf(stdout, "accept listenfd %d\n", listenfd);
             connfd = Accept(listenfd, (SA*)&clientaddr, &clientlen);
@@ -54,7 +58,9 @@ void init_pool(int listenfd, pool *p) {
     }
 
     p->maxfd = listenfd;
+    FD_ZERO(&p->reading_left_set);
     FD_ZERO(&p->read_set);
+    FD_ZERO(&p->pipeline_ready_set);
     FD_SET(listenfd, &p->read_set);
 }
 
@@ -62,6 +68,8 @@ void init_pool(int listenfd, pool *p) {
 void add_client(int connfd, pool *p) {
     int i;
     p->nready--;
+    fcntl(connfd, F_SETFL, O_NONBLOCK);
+
     for (int i = 0; i < FD_SETSIZE; i++) {
         if (p->clientfd[i] < 0) {
             p->clientfd[i] = connfd;
@@ -87,35 +95,72 @@ void add_client(int connfd, pool *p) {
 void check_client(pool *p) {
     int i, connfd, n;
     rio_t* rio;
+    char usrbuf[RIO_BUFSIZE];
 
-    fprintf(stdout, "p->nready %d\n", p->nready);
-    for (i = 0; i <= p->maxi && p->nready > 0; i++) {
+    for (i = 0; i <= p->maxi && (p->nready > 0 || p->pipeline_nready > 0 || p->reading_left_nready > 0); i++) {
+        memset(usrbuf, 0, RIO_BUFSIZE);
         connfd = p->clientfd[i];
         rio=&(p->clientrio[i]);
 
-        if (connfd > 0 && (FD_ISSET(connfd, &p->ready_set))) {
-            p->nready--;
-            if ((n = Rio_read(rio, rio->rio_buf, MAXLINE)) != 0) {
-                fprintf(stdout, "reading %d chars %s", n, rio->rio_buf);
+        if (connfd > 0 && (FD_ISSET(connfd, &p->ready_set) || FD_ISSET(connfd, &p->pipeline_ready_set) || FD_ISSET(connfd, &p->reading_left_set))) {
+            if (FD_ISSET(connfd, &p->ready_set)) {
+                p->nready--;
+            } 
+            if (FD_ISSET(connfd, &p->pipeline_ready_set)) {
+                log_info("pipeline handler is invoked\n");
+                p->pipeline_nready--;
+                FD_CLR(connfd, &p->pipeline_ready_set);
+            } 
+            if ((n = Rio_readn(rio, usrbuf, MAXLINE)) != 0) {
+                //log_info("reading %d chars \n%s\n", n, usrbuf);
                 Request *request = NULL;
                 if (p->clientReadingLeft[i] == 0) {
-                    request = parse(rio->rio_buf, n, connfd);
-                    //pipelines: reading message_length and reparse the remaining one, change the IO to be non-blocking
-                    if (request == NULL) {
-                        Rio_writen(connfd, BAD_REQUEST, strlen(BAD_REQUEST));
-                        log_error("request: %s\n response: %s\n", rio->rio_buf, BAD_REQUEST);
-                    } else {
-                        if (request->content_length != 0 && request->message_body != NULL && 
-                                    strlen(request->message_body) < request->content_length) {
-                            p->clientReadingLeft[i] = request->content_length - strlen(request->message_body);
+                        request = parse(usrbuf, n, connfd);
+                        /*pipelines: reading message_length and reparse the remaining one, 
+                            * change the IO to be non-blocking X
+                            * change the parsing logic to return unhandled chars X
+                            * have another buffer for parsing. X
+                            * use readn instead of read to align the 8019 header for the second call. 
+                        */
+                        if (request == NULL) {
+                            Rio_writen(connfd, BAD_REQUEST, strlen(BAD_REQUEST));
+                            log_error("request: %s\n response: %s\n", usrbuf, BAD_REQUEST);
+                        } else {
+                            Rio_writen(connfd, usrbuf, n-request->unhandled_buffer_size); 
+                            //log_info("request: %s\n ", usrbuf);
+
+                            if (request->content_length > 0 && request->message_body_size > 0 && 
+                                    request->message_body_size < request->content_length) {
+                                p->clientReadingLeft[i] = request->content_length - request->message_body_size;
+                                p->reading_left_nready += 1;
+                                FD_SET(connfd, &p->reading_left_set);
+                            } else if (request->unhandled_buffer_size > 0) {
+                                //TODO: set a in pool for next iteration. 
+                                // * Select won't be blocked https://www.ibm.com/docs/en/i/7.2?topic=designs-example-nonblocking-io-select
+                                // * FD_ISSET connfd will be set
+                                // * clean up pipeline_ready_set
+
+                                // move rio_bufptr back so that next time will re-read
+                                log_info("unhandled_buffer_size is %d\n", request->unhandled_buffer_size);
+                                move_rio_bufptr(rio, -request->unhandled_buffer_size);
+                                p->pipeline_nready += 1;
+                                FD_SET(connfd, &p->pipeline_ready_set); 
+                                //TODO, issue that it skip the part already read by Rio_read but read new incoming data
+                                //We should find a way to only read necessary data, or Select should be changed to non-blocking
+                            }
                         }
-                        Rio_writen(connfd, rio->rio_buf, n); 
-                        log_info("request: %s\n response: %s\n", rio->rio_buf, rio->rio_buf);
-                    }
                 } else {
-                    Rio_writen(connfd, rio->rio_buf, n); 
-                    p->clientReadingLeft[i] -= n;
-                    log_info("request: %s\n response: %s\n", rio->rio_buf, rio->rio_buf);
+                    Rio_writen(connfd, usrbuf, MIN(n, p->clientReadingLeft[i])); 
+                    if (n >= p->clientReadingLeft[i]) {
+                        move_rio_bufptr(rio, p->clientReadingLeft[i]-n); 
+                        p->pipeline_nready += 1;
+                        FD_SET(connfd, &p->pipeline_ready_set); 
+
+                        log_info("reading left is invoked\n");
+                        p->reading_left_nready--;
+                        FD_CLR(connfd, &p->reading_left_set);
+                    }
+                    p->clientReadingLeft[i] -= MIN(n, p->clientReadingLeft[i]);
                 } 
             } else {
                 close_connection(p, connfd, i);

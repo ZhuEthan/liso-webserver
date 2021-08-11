@@ -11,7 +11,7 @@ Request * parse(char *buffer, int size, int socketFd) {
 	};
 
 	int i = 0, state;
-	size_t offset = 0;
+	size_t header_offset = 0;
 	char ch;
 	char buf[8192];
 	memset(buf, 0, 8192);
@@ -26,7 +26,7 @@ Request * parse(char *buffer, int size, int socketFd) {
 			break;
 
 		ch = buffer[i++];
-		buf[offset++] = ch;
+		buf[header_offset++] = ch;
 
 		switch (state) {
 		case STATE_START:
@@ -61,7 +61,13 @@ Request * parse(char *buffer, int size, int socketFd) {
 
 		if (yyparse() == SUCCESS) {
 			if (request->content_length > 0) {
-				memcpy(request->message_body, buffer+offset, request->content_length);
+				request->message_body_size = MIN(request->content_length, size-header_offset);
+				memcpy(request->message_body, buffer+header_offset, request->message_body_size);
+
+				request->unhandled_buffer_size = MAX(size-header_offset-(request->message_body_size), 0);
+				memcpy(request->unhandled_buffer, buffer+header_offset+request->message_body_size, request->unhandled_buffer_size);
+				//memcpy(request->unhandled_buffer, buffer+offset+request->content_length, size-offset-(request->content_length));
+				printf("request unhandled buffer is %s\n", (char*)request->unhandled_buffer);
 				printf("request content length %d\n", request->content_length);
 				printf("request content: %s\n", request->message_body);
 			}
@@ -73,5 +79,56 @@ Request * parse(char *buffer, int size, int socketFd) {
 	yy_switch_to_buffer(bufferstate);
     printf("Parsing Failed\n");
 	return NULL;
+}
+
+int get_header_length(char *buffer, int size) {
+	enum {
+		STATE_START = 0, STATE_CR, STATE_CRLF, STATE_CRLFCR, STATE_CRLFCRLF
+	};
+
+	int state;
+	size_t header_offset = 0;
+	char ch;
+
+	int crlf_num = 0;
+
+	state = STATE_START;
+	while (state != STATE_CRLFCRLF) {
+		char expected = 0;
+
+		if (header_offset == size) {
+			break;
+		}
+		
+
+		ch = buffer[header_offset++];
+
+		switch (state) {
+		case STATE_START:
+		case STATE_CRLF:
+			expected = '\r';
+			break;
+		case STATE_CR:
+		case STATE_CRLFCR:
+			crlf_num += 1;
+			expected = '\n';
+			break;
+		default:
+			state = STATE_START;
+			continue;
+		}
+
+		if (ch == expected)
+			state++;
+		else
+			state = STATE_START;
+
+	}
+
+	if (state == STATE_CRLFCRLF) {
+		return header_offset;
+	}
+	return -1;
+	
 }
 

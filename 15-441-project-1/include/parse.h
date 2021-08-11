@@ -4,6 +4,9 @@
 
 #define SUCCESS 0
 
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+
 //Header field
 typedef struct
 {
@@ -20,13 +23,19 @@ typedef struct
 	Request_header *headers;
 	int header_count;
 	int content_length;
-	char* message_body;
+
+	void* message_body;
+	int message_body_size;
+
+	char unhandled_buffer[8192];
+	int unhandled_buffer_size;
 } Request;
 
 Request* parse(char *buffer, int size,int socketFd);
 
 // functions decalred in parser.y
 int yyparse();
+int get_header_length(char *buffer, int size);
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
 YY_BUFFER_STATE yy_create_buffer (FILE *file,int size);
 void yy_switch_to_buffer  (YY_BUFFER_STATE  new_buffer );
