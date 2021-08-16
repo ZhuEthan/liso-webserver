@@ -34,6 +34,7 @@ int main(int argc, char **argv) {
     init_pool(listenfd, &pool);
     while (1) {
         pool.ready_set = pool.read_set; // only ready_set is being updated by Select(side effect of Select), read_set is the ones to be watched
+        //TODO: enable Select to be synced with Rio read with buffer
         pool.nready = Select(pool.maxfd+1, &pool.ready_set, NULL, NULL, &timeout);
 
         if (FD_ISSET(listenfd, &pool.ready_set)) {
@@ -111,17 +112,11 @@ void check_client(pool *p) {
                 p->pipeline_nready--;
                 FD_CLR(connfd, &p->pipeline_ready_set);
             } 
-            if ((n = Rio_readn(rio, usrbuf, MAXLINE)) != 0) {
+            if ((n = Rio_readn(rio, usrbuf, MAXLINE)) > 0) {
                 //log_info("reading %d chars \n%s\n", n, usrbuf);
                 Request *request = NULL;
-                if (p->clientReadingLeft[i] == 0) {
+                if (p->clientReadingLeft[i] == 0 ) {
                         request = parse(usrbuf, n, connfd);
-                        /*pipelines: reading message_length and reparse the remaining one, 
-                            * change the IO to be non-blocking X
-                            * change the parsing logic to return unhandled chars X
-                            * have another buffer for parsing. X
-                            * use readn instead of read to align the 8019 header for the second call. 
-                        */
                         if (request == NULL) {
                             Rio_writen(connfd, BAD_REQUEST, strlen(BAD_REQUEST));
                             log_error("request: %s\n response: %s\n", usrbuf, BAD_REQUEST);
@@ -135,18 +130,10 @@ void check_client(pool *p) {
                                 p->reading_left_nready += 1;
                                 FD_SET(connfd, &p->reading_left_set);
                             } else if (request->unhandled_buffer_size > 0) {
-                                //TODO: set a in pool for next iteration. 
-                                // * Select won't be blocked https://www.ibm.com/docs/en/i/7.2?topic=designs-example-nonblocking-io-select
-                                // * FD_ISSET connfd will be set
-                                // * clean up pipeline_ready_set
-
-                                // move rio_bufptr back so that next time will re-read
                                 log_info("unhandled_buffer_size is %d\n", request->unhandled_buffer_size);
                                 move_rio_bufptr(rio, -request->unhandled_buffer_size);
                                 p->pipeline_nready += 1;
                                 FD_SET(connfd, &p->pipeline_ready_set); 
-                                //TODO, issue that it skip the part already read by Rio_read but read new incoming data
-                                //We should find a way to only read necessary data, or Select should be changed to non-blocking
                             }
                         }
                 } else {
@@ -162,9 +149,9 @@ void check_client(pool *p) {
                     }
                     p->clientReadingLeft[i] -= MIN(n, p->clientReadingLeft[i]);
                 } 
-            } else {
+            } else if (n == 0) {
                 close_connection(p, connfd, i);
-            }
+            } 
         } 
     }
 }
