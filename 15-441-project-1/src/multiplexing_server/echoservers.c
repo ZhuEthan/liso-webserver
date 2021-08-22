@@ -113,15 +113,33 @@ void check_client(pool *p) {
                 FD_CLR(connfd, &p->pipeline_ready_set);
             } 
             if ((n = Rio_readn(rio, usrbuf, MAXLINE)) > 0) {
-                //log_info("reading %d chars \n%s\n", n, usrbuf);
                 Request *request = NULL;
-                if (p->clientReadingLeft[i] == 0 ) {
-                        request = parse(usrbuf, n, connfd);
+                //if (p->clientReadingLeft[i] == 0 ) {
+                        request = parse_header(usrbuf, n, connfd);
                         if (request == NULL) {
                             Rio_writen(connfd, BAD_REQUEST, strlen(BAD_REQUEST));
                             log_error("request: %s\n response: %s\n", usrbuf, BAD_REQUEST);
                         } else {
-                            Rio_writen(connfd, usrbuf, n-request->unhandled_buffer_size); 
+                            move_rio_bufptr(rio, request->header_offset - n);
+                            int m;
+                            if ((m = Rio_readn(rio, request->message_body, request->content_length)) == request->content_length) {
+                                char* response_buf = (char*) malloc(sizeof(char) * (request->content_length + request->header_offset));
+                                strncpy(response_buf, usrbuf, request->header_offset);
+                                log_info("header offset %d\n", request->header_offset);
+                                log_info("usrbuf: %s with content_length %d\n", response_buf, request->content_length);
+                                strncpy(response_buf+request->header_offset, request->message_body, request->content_length);
+                                log_info("request: %s\n", response_buf);
+                                Rio_writen(connfd, response_buf, request->content_length + request->header_offset);
+                            } else {
+                                log_error("request: %s\n response: %s\n", usrbuf, BAD_REQUEST);
+                                Rio_writen(connfd, BAD_REQUEST, strlen(BAD_REQUEST));
+                            }
+
+                            if (n-request->header_offset > request->content_length) {// When there are remaining pipeline request
+                                //TODO: pipeline    
+                                log_error("doesn't support pipeline");
+                            }
+                            /*Rio_writen(connfd, usrbuf, n-request->unhandled_buffer_size); 
                             //log_info("request: %s\n ", usrbuf);
 
                             if (request->content_length > 0 && request->message_body_size > 0 && 
@@ -134,21 +152,22 @@ void check_client(pool *p) {
                                 move_rio_bufptr(rio, -request->unhandled_buffer_size);
                                 p->pipeline_nready += 1;
                                 FD_SET(connfd, &p->pipeline_ready_set); 
-                            }
+                            }*/
                         }
-                } else {
-                    Rio_writen(connfd, usrbuf, MIN(n, p->clientReadingLeft[i])); 
-                    if (n >= p->clientReadingLeft[i]) {
-                        move_rio_bufptr(rio, p->clientReadingLeft[i]-n); 
-                        p->pipeline_nready += 1;
-                        FD_SET(connfd, &p->pipeline_ready_set); 
+                        //TODO: shouldn't call twice for unfinished request, should in one loop. 
+                //} else {
+                //    Rio_writen(connfd, usrbuf, MIN(n, p->clientReadingLeft[i])); 
+                //    if (n >= p->clientReadingLeft[i]) {
+                //        move_rio_bufptr(rio, p->clientReadingLeft[i]-n); 
+                //        p->pipeline_nready += 1;
+                //        FD_SET(connfd, &p->pipeline_ready_set); 
 
-                        log_info("reading left is invoked\n");
-                        p->reading_left_nready--;
-                        FD_CLR(connfd, &p->reading_left_set);
-                    }
-                    p->clientReadingLeft[i] -= MIN(n, p->clientReadingLeft[i]);
-                } 
+                //        log_info("reading left is invoked\n");
+                //        p->reading_left_nready--;
+                //        FD_CLR(connfd, &p->reading_left_set);
+                //    }
+                //    p->clientReadingLeft[i] -= MIN(n, p->clientReadingLeft[i]);
+                //} 
             } else if (n == 0) {
                 close_connection(p, connfd, i);
             } 

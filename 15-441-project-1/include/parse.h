@@ -22,16 +22,17 @@ typedef struct
 	char http_uri[4096];
 	Request_header *headers;
 	int header_count;
+	int header_offset;
 	int content_length;
 
-	void* message_body;
+	char* message_body;
 	int message_body_size;
 
 	char unhandled_buffer[8192];
 	int unhandled_buffer_size;
 } Request;
 
-Request* parse(char *buffer, int size,int socketFd);
+Request* parse_header(char *buffer, int size,int socketFd);
 
 // functions decalred in parser.y
 int yyparse();
