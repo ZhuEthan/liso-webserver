@@ -40,8 +40,8 @@ typedef struct sockaddr SA;
 
 /* Persistent state for the robust I/O (Rio) package */
 /* $begin rio_t */
-#define RIO_BUFSIZE 70
-//#define RIO_BUFSIZE 8192
+//#define RIO_BUFSIZE 70
+#define RIO_BUFSIZE 8192
 typedef struct {
     int rio_fd;                /* Descriptor for this internal buf */
     int rio_cnt;               /* Unread bytes in internal buf */
@@ -56,8 +56,8 @@ extern int h_errno;    /* Defined by BIND for DNS errors */
 extern char **environ; /* Defined by libc */
 
 /* Misc constants */
-//#define	MAXLINE	 8192/* Max text line length */
-#define	MAXLINE	 70/* Max text line length */
+#define	MAXLINE	 8192/* Max text line length */
+//#define	MAXLINE	 70/* Max text line length */
 #define MAXBUF   8192  /* Max I/O buffer size */
 #define LISTENQ  1024  /* Second argument to listen() */
 
@@ -181,16 +181,9 @@ typedef struct { // Represents a pool of connected descriptors
 
     fd_set ready_set; // Subset of descriptors ready for reading
     fd_set pipeline_ready_set;
-    fd_set reading_left_set;
-
-    int nready; // Number of ready descriptors from select
-    int pipeline_nready;
-    int reading_left_nready;
 
     int maxi; // Highwater index into client array
     int clientfd[FD_SETSIZE]; // Set of active descriptors
-
-    int clientReadingLeft[FD_SETSIZE];
 
     rio_t clientrio[FD_SETSIZE]; // Set of active read buffers
 } pool;

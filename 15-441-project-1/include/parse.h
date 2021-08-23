@@ -36,7 +36,6 @@ Request* parse_header(char *buffer, int size,int socketFd);
 
 // functions decalred in parser.y
 int yyparse();
-int get_header_length(char *buffer, int size);
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
 YY_BUFFER_STATE yy_create_buffer (FILE *file,int size);
 void yy_switch_to_buffer  (YY_BUFFER_STATE  new_buffer );
