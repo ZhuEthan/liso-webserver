@@ -98,7 +98,7 @@ void app_error(char *msg);
 int Select(int  n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, 
 	   struct timeval *timeout);
 //int Dup2(int fd1, int fd2);
-//void Stat(const char *filename, struct stat *buf);
+void Stat(const char *filename, struct stat *buf);
 //void Fstat(int fd, struct stat *buf) ;
 //
 ///* Memory mapping wrappers */

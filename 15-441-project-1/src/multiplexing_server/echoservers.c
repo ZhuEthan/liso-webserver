@@ -44,7 +44,6 @@ int main(int argc, char **argv) {
 
         check_client(&pool);
     }
-
     close_log();
 }
 
@@ -89,6 +88,37 @@ void add_client(int connfd, pool *p) {
     }
 }
 
+char* reading_file(char* fileName) {
+    char* buff = (char*) malloc(MAXLINE * sizeof(char));
+    log_info("fileName is %s", fileName);
+    FILE *fp = fopen(fileName, "r");
+    if (!fp) {
+        log_info("fopen failed %s", strerror(errno));
+    }
+    fgets(buff, MAXLINE, fp);
+    log_info("file content is %s", buff);
+    fclose(fp);
+    return buff;
+}
+
+char* get_last_modified_date(char* fileName) {
+    struct stat buf;
+    Stat(fileName, &buf);
+    char* date = (char*) malloc(10 * sizeof(char));
+    strftime(date, 10, "%d-%m-%y", gmtime(&(buf.st_ctime)));
+    log_info("date: %s", date);
+    return date;
+}
+
+char* extractRelativePath(char* path) {
+    log_info("path is %s", path);
+    char* pointerToDNSName = strstr(path, "127.0.0.1");
+    if (pointerToDNSName == NULL) {
+        return path;
+    }
+    return pointerToDNSName + 9;
+}
+
 void check_client(pool *p) {
     int i, connfd, n;
     rio_t* rio;
@@ -114,13 +144,30 @@ void check_client(pool *p) {
                     move_rio_bufptr(rio, request->header_offset - n);
                     int m;
                     if ((m = Rio_readn(rio, request->message_body, request->content_length)) == request->content_length) {
-                        char* response_buf = (char*) malloc(sizeof(char) * (request->content_length + request->header_offset));
+                        /*char* response_buf = (char*) malloc(sizeof(char) * (request->content_length + request->header_offset));
                         strncpy(response_buf, usrbuf, request->header_offset);
                         log_info("header offset %d\n", request->header_offset);
                         log_info("usrbuf: %s with content_length %d\n", response_buf, request->content_length);
                         strncpy(response_buf+request->header_offset, request->message_body, request->content_length);
                         log_info("request: %s\n", response_buf);
-                        Rio_writen(connfd, response_buf, request->content_length + request->header_offset);
+                        Rio_writen(connfd, response_buf, request->content_length + request->header_offset);*/
+                        if (strcmp("GET", request->http_method) == 0) {
+                            char* relativePath = extractRelativePath(request->http_uri);
+                            char* path = (char*) malloc(strlen(relativePath)+1);
+                            sprintf(path, ".%s", relativePath);
+                            /** 
+                             *read files using some FD. 
+                            **/
+                            char* content = reading_file(path);
+                            char* last_modified_date = get_last_modified_date(path);
+                            char* response = (char*) malloc(MAXLINE * sizeof(char));
+                            char* status_code = (char*) malloc(4);
+                            strcpy(status_code, "200");
+                            sprintf(response, "%s %s %s\r\nContent-Length: %d\r\nLast-Modified: %s\r\n\r\n%s",
+                                request->http_version, status_code, "Reason-Phrase", strlen(content), last_modified_date, content);
+                            log_info("response length is %s with length %d", response,  strlen(response));
+                            Rio_writen(connfd, response, strlen(response));
+                        }
                     } else {
                         log_error("request: %s\n response: %s\n", usrbuf, BAD_REQUEST);
                         Rio_writen(connfd, BAD_REQUEST, strlen(BAD_REQUEST));

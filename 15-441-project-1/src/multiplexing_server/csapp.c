@@ -169,6 +169,10 @@ void Rio_readinitb(rio_t *rp, int fd) {
     rp->rio_bufptr = rp->rio_buf;
 }
 
+void Stat(const char *filename, struct stat *buf) {
+    stat(filename, buf);
+}
+
 int Select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, 
     struct timeval *timeout) {
     return select(n, readfds, writefds, exceptfds, timeout);
