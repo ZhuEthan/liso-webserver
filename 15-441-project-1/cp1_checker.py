@@ -72,23 +72,23 @@ for i in xrange(numTrials):
         data = socketSubset[j].recv(100)#randomLen[j])
         print("receive data:\n")
         print(data)
-        start_time = time.time()
-        while True:
+        #start_time = time.time()
+        #while True:
             #print("sent data: ")
             #print(random_string)
             #print("expected data with len ", randomLen[j])
             #print(randomData[j])
-            if len(data) == randomLen[j]:
-                break
+            #if len(data) == randomLen[j]:
+                #break
             #socketSubset[j].settimeout(RECV_EACH_TIMEOUT)
-            data += socketSubset[j].recv(randomLen[j])
-            print("receive data:\n")
-            print(data)
+            #data += socketSubset[j].recv(randomLen[j])
+            #print("receive data:\n")
+            #print(data)
             #if time.time() - start_time > RECV_TOTAL_TIMEOUT:
                 #break
-        if data != randomData[j]:
-            print("rece data: ")
-            print(data)
+        #if data != randomData[j]:
+            #print("rece data: ")
+            #print(data)
             #sys.stderr.write("Error: Data received is not the same as sent! \n")
             #sys.exit(1)
 
