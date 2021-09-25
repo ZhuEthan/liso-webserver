@@ -34,7 +34,7 @@ for i in xrange(numConnections):
 
 #'GET / HTTP/1.1\r\nHost: 127.0.0.1:9999\r\nConnection: keep-alive\r\nCache-Control: max-age=0\r\n\r\nmessage'
 GOOD_REQUESTS = [
-    'GET /text.txt HTTP/1.1\r\n\r\n',
+    'HEAD /text.txt HTTP/1.1\r\n\r\n',
     'GET / HTTP/1.1\r\nUser-Agent: 441UserAgent/1.0.0\r\nContent-Length: 8\r\n\r\nmessage\nGET / HTTP/1.1\r\nUser-Agent: 441UserAgent/1.0.0\r\nContent-Length: 8\r\n\r\nmessage\n', # fo the message, we should use readn instead of readlinen
     'GET / HTTP/1.1\r\nUser-Agent: 441UserAgent/1.0.0\r\nContent-Length: 8\r\n\r\nmessage\n', # fo the message, we should use readn instead of readlinen
     'GET / HTTP/1.1\r\n\r\n'
@@ -65,6 +65,7 @@ for i in xrange(numTrials):
             random_string = BAD_REQUESTS[random_index - len(GOOD_REQUESTS)]
             randomLen.append(len(BAD_REQUEST_RESPONSE))
             randomData.append(BAD_REQUEST_RESPONSE)
+        print(random_string)
         socketSubset[j].send(random_string)
         #socketSubset[j].send(random_string)
 

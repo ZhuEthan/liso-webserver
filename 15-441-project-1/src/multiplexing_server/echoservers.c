@@ -151,7 +151,7 @@ void check_client(pool *p) {
                         strncpy(response_buf+request->header_offset, request->message_body, request->content_length);
                         log_info("request: %s\n", response_buf);
                         Rio_writen(connfd, response_buf, request->content_length + request->header_offset);*/
-                        if (strcmp("GET", request->http_method) == 0) {
+                        if (strcmp("GET", request->http_method) == 0 || strcmp("HEAD", request->http_method) == 0) {
                             char* relativePath = extractRelativePath(request->http_uri);
                             char* path = (char*) malloc(strlen(relativePath)+1);
                             sprintf(path, ".%s", relativePath);
@@ -163,10 +163,19 @@ void check_client(pool *p) {
                             char* response = (char*) malloc(MAXLINE * sizeof(char));
                             char* status_code = (char*) malloc(4);
                             strcpy(status_code, "200");
-                            sprintf(response, "%s %s %s\r\nContent-Length: %d\r\nLast-Modified: %s\r\n\r\n%s",
-                                request->http_version, status_code, "Reason-Phrase", strlen(content), last_modified_date, content);
+                            if (strcmp("HEAD", request->http_method) == 0) {
+                                log_info("HEAD is triggered");
+                                sprintf(response, "%s %s %s\r\nContent-Length: %d\r\nLast-Modified: %s\r\n\r\n",
+                                    request->http_version, status_code, "Reason-Phrase", strlen(content), last_modified_date);
+                            } else if (strcmp("GET", request->http_method) == 0) {
+                                log_info("HEAD is triggered");
+                                sprintf(response, "%s %s %s\r\nContent-Length: %d\r\nLast-Modified: %s\r\n\r\n%s",
+                                    request->http_version, status_code, "Reason-Phrase", strlen(content), last_modified_date, content);
+                            }
                             log_info("response length is %s with length %d", response,  strlen(response));
                             Rio_writen(connfd, response, strlen(response));
+                        } else {
+
                         }
                     } else {
                         log_error("request: %s\n response: %s\n", usrbuf, BAD_REQUEST);
