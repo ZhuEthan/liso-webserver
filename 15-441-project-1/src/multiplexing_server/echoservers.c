@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
     struct timeval timeout;
 
     init_log();
-    timeout.tv_sec  = 0.01;
+    timeout.tv_sec  = 10;//0.01;
     timeout.tv_usec = 0;
 
 
@@ -151,16 +151,18 @@ void check_client(pool *p) {
                         strncpy(response_buf+request->header_offset, request->message_body, request->content_length);
                         log_info("request: %s\n", response_buf);
                         Rio_writen(connfd, response_buf, request->content_length + request->header_offset);*/
+                        char* response = (char*) malloc(MAXLINE * sizeof(char));
                         if (strcmp("GET", request->http_method) == 0 || strcmp("HEAD", request->http_method) == 0) {
                             char* relativePath = extractRelativePath(request->http_uri);
+                            fprintf(stdout, "%s", relativePath);
                             char* path = (char*) malloc(strlen(relativePath)+1);
-                            sprintf(path, ".%s", relativePath);
+                            sprintf(path, "cp2/static_site/%s", relativePath);
                             /** 
                              *read files using some FD. 
                             **/
                             char* content = reading_file(path);
                             char* last_modified_date = get_last_modified_date(path);
-                            char* response = (char*) malloc(MAXLINE * sizeof(char));
+                            
                             char* status_code = (char*) malloc(4);
                             strcpy(status_code, "200");
                             if (strcmp("HEAD", request->http_method) == 0) {
@@ -175,7 +177,8 @@ void check_client(pool *p) {
                             log_info("response length is %s with length %d", response,  strlen(response));
                             Rio_writen(connfd, response, strlen(response));
                         } else {
-
+                            sprintf(response, "%s %s %s\r\n\r\n", request->http_version, "500", "Reason-Phrase");
+                            Rio_writen(connfd, response, strlen(response));
                         }
                     } else {
                         log_error("request: %s\n response: %s\n", usrbuf, BAD_REQUEST);

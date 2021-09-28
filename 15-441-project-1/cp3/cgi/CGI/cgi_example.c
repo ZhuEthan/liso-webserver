@@ -85,10 +85,10 @@ interpreter).\n");
         case EISDIR:
             fprintf(stderr, "An ELF interpreter was a directory.\n");
             return;
-        case ELIBBAD:
+        /*case ELIBBAD:
             fprintf(stderr, "An ELF interpreter was not in a recognised \
 format.\n");
-            return;
+            return;*/
         case ELOOP:
             fprintf(stderr, "Too many symbolic links were encountered in \
 resolving filename or the name of a script \
@@ -211,6 +211,10 @@ int main(int argc, char * argv[])
         close(stdin_pipe[1]); /* finished writing to spawn */
 
         /* you want to be looping with select() telling you when to read */
+        //TODO: this program will be on echoservers.c
+        //First step could be synchronously read the data. 
+        //Second step will be having a mapping from stdout_pipe to clientrio, when data comes in, 
+        //see if it is an existing clientrio, if it is, then return to that clientrio. 
         while((readret = read(stdout_pipe[0], buf, BUF_SIZE-1)) > 0)
         {
             buf[readret] = '\0'; /* nul-terminate string */
