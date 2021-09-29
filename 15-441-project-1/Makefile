@@ -11,7 +11,7 @@ OBJ := $(OBJ_DIR)/y.tab.o $(OBJ_DIR)/lex.yy.o $(OBJ_DIR)/parse.o $(OBJ_DIR)/exam
 #Server Objects
 SERVER_OBJ := $(OBJ_DIR)/y.tab.o $(OBJ_DIR)/lex.yy.o $(OBJ_DIR)/parse.o $(OBJ_DIR)/echo_server.o
 
-EXP_OBJ := $(OBJ_DIR)/y.tab.o $(OBJ_DIR)/lex.yy.o $(OBJ_DIR)/parse.o $(OBJ_DIR)/echoservers.o $(OBJ_DIR)/csapp.o $(UTIL_DIR)/log.o
+EXP_OBJ := $(OBJ_DIR)/y.tab.o $(OBJ_DIR)/lex.yy.o $(OBJ_DIR)/parse.o $(OBJ_DIR)/echoservers.o $(OBJ_DIR)/csapp.o $(UTIL_DIR)/log.o $(OBJ_DIR)/cgi_util.o
 
 #Client Objects
 CLIENT_OBJ := $(OBJ_DIR)/y.tab.o $(OBJ_DIR)/lex.yy.o $(OBJ_DIR)/parse.o $(OBJ_DIR)/echo_client.o
@@ -41,6 +41,9 @@ $(SRC_DIR)/y.tab.c: $(SRC_DIR)/parser.y
 	mv y.tab.h $(SRC_DIR)/y.tab.h
 
 $(OBJ_DIR)/echoservers.o: $(EXP_DIR)/echoservers.c $(OBJ_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/cgi_util.o: $(EXP_DIR)/cgi_util.c $(OBJ_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 $(UTIL_DIR)/%.o: $(EXP_DIR)/util/%.c $(OBJ_DIR) $(UTIL_DIR)

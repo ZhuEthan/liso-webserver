@@ -1,6 +1,7 @@
 #include "csapp.h"
 #include "parse.h"
 #include "util/log.h"
+#include "cgi_util.h"
 
 int byte_cnt = 0;
 char* BAD_REQUEST = "HTTP/1.1 400 Bad Request\r\n\r\n";
@@ -94,6 +95,7 @@ char* reading_file(char* fileName) {
     FILE *fp = fopen(fileName, "r");
     if (!fp) {
         log_info("fopen failed %s", strerror(errno));
+        return NULL;
     }
     fgets(buff, MAXLINE, fp);
     log_info("file content is %s", buff);
@@ -114,6 +116,9 @@ char* extractRelativePath(char* path) {
     log_info("path is %s", path);
     char* pointerToDNSName = strstr(path, "127.0.0.1");
     if (pointerToDNSName == NULL) {
+        if (path[0] == '/') {
+            return path + 1;
+        }
         return path;
     }
     return pointerToDNSName + 9;
@@ -154,28 +159,46 @@ void check_client(pool *p) {
                         char* response = (char*) malloc(MAXLINE * sizeof(char));
                         if (strcmp("GET", request->http_method) == 0 || strcmp("HEAD", request->http_method) == 0) {
                             char* relativePath = extractRelativePath(request->http_uri);
+                            char* path;
+                            char* content;
+
+                            log_info("relativepath is %s", relativePath);
                             fprintf(stdout, "%s", relativePath);
-                            char* path = (char*) malloc(strlen(relativePath)+1);
-                            sprintf(path, "cp2/static_site/%s", relativePath);
-                            /** 
-                             *read files using some FD. 
-                            **/
-                            char* content = reading_file(path);
-                            char* last_modified_date = get_last_modified_date(path);
-                            
-                            char* status_code = (char*) malloc(4);
-                            strcpy(status_code, "200");
-                            if (strcmp("HEAD", request->http_method) == 0) {
-                                log_info("HEAD is triggered");
-                                sprintf(response, "%s %s %s\r\nContent-Length: %d\r\nLast-Modified: %s\r\n\r\n",
-                                    request->http_version, status_code, "Reason-Phrase", strlen(content), last_modified_date);
-                            } else if (strcmp("GET", request->http_method) == 0) {
-                                log_info("HEAD is triggered");
-                                sprintf(response, "%s %s %s\r\nContent-Length: %d\r\nLast-Modified: %s\r\n\r\n%s",
-                                    request->http_version, status_code, "Reason-Phrase", strlen(content), last_modified_date, content);
+                            if (strncmp(relativePath, "cgi", 3) == 0) {
+                                //TODO: call cgi_util.c
+                                log_info("I am in cgi");
+                                content = cgi_start(request->message_body, request->headers);
+                                log_info("content %s", content);
+                            } else {
+                                path = (char*) malloc(strlen(relativePath)+1);
+                                sprintf(path, "cp2/static_site/%s", relativePath);
+                                /** 
+                                *read files using some FD. 
+                                **/
+                                content = reading_file(path);
                             }
-                            log_info("response length is %s with length %d", response,  strlen(response));
-                            Rio_writen(connfd, response, strlen(response));
+                            
+                            if (content == NULL) {
+                                sprintf(response, "%s %s %s\r\n\r\n", request->http_version, "404", "resource not found");
+                                Rio_writen(connfd, response, strlen(response));
+                            } else {
+                                char* last_modified_date = get_last_modified_date(path);
+                            
+                                char* status_code = (char*) malloc(4);
+                                strcpy(status_code, "200");
+
+                                if (strcmp("HEAD", request->http_method) == 0) {
+                                    log_info("HEAD is triggered");
+                                    sprintf(response, "%s %s %s\r\nContent-Length: %d\r\nLast-Modified: %s\r\n\r\n",
+                                        request->http_version, status_code, "Reason-Phrase", strlen(content), last_modified_date);
+                                } else if (strcmp("GET", request->http_method) == 0) {
+                                    log_info("HEAD is triggered");
+                                    sprintf(response, "%s %s %s\r\nContent-Length: %d\r\nLast-Modified: %s\r\n\r\n%s",
+                                        request->http_version, status_code, "Reason-Phrase", strlen(content), last_modified_date, content);
+                                }
+                                log_info("response length is %s with length %d", response,  strlen(response));
+                                Rio_writen(connfd, response, strlen(response));
+                            }
                         } else {
                             sprintf(response, "%s %s %s\r\n\r\n", request->http_version, "500", "Reason-Phrase");
                             Rio_writen(connfd, response, strlen(response));
