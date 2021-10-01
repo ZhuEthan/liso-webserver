@@ -34,7 +34,8 @@ for i in xrange(numConnections):
 
 #'GET / HTTP/1.1\r\nHost: 127.0.0.1:9999\r\nConnection: keep-alive\r\nCache-Control: max-age=0\r\n\r\nmessage'
 GOOD_REQUESTS = [
-    'HEAD /cgi/text.txt HTTP/1.1\r\n\r\nnmessage\r\n',
+    'GET /cgi/text.txt HTTP/1.1\r\nContent-Length: 8\r\n\r\nmessage\n',
+    'GET index.html HTTP/1.1\r\nContent-Length: 8\r\n\r\nmessage\n',
     'GET / HTTP/1.1\r\nUser-Agent: 441UserAgent/1.0.0\r\nContent-Length: 8\r\n\r\nmessage\nGET / HTTP/1.1\r\nUser-Agent: 441UserAgent/1.0.0\r\nContent-Length: 8\r\n\r\nmessage\n', # fo the message, we should use readn instead of readlinen
     'GET / HTTP/1.1\r\nUser-Agent: 441UserAgent/1.0.0\r\nContent-Length: 8\r\n\r\nmessage\n', # fo the message, we should use readn instead of readlinen
     'GET / HTTP/1.1\r\n\r\n'
@@ -54,7 +55,7 @@ for i in xrange(numTrials):
     socketSubset = random.sample(socketList, numConnections)
     random_string = ""
     for j in xrange(numWritesReads):
-        random_index = 0 #random.randrange(len(GOOD_REQUESTS) + len(BAD_REQUESTS))
+        random_index = 1 #random.randrange(len(GOOD_REQUESTS) + len(BAD_REQUESTS))
         print("random_index")
         print(random_index)
         if random_index < len(GOOD_REQUESTS):

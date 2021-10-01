@@ -169,6 +169,9 @@ void check_client(pool *p) {
                                 log_info("I am in cgi");
                                 content = cgi_start(request->message_body, request->headers);
                                 log_info("content %s", content);
+                                sprintf(response, "%s %s %s\r\nContent-Length: %d\r\n\r\n%s",
+                                        request->http_version, "400", "Reason-Phrase", strlen(content), content);
+                                Rio_writen(connfd, response, strlen(response));
                             } else {
                                 path = (char*) malloc(strlen(relativePath)+1);
                                 sprintf(path, "cp2/static_site/%s", relativePath);
@@ -176,28 +179,28 @@ void check_client(pool *p) {
                                 *read files using some FD. 
                                 **/
                                 content = reading_file(path);
-                            }
                             
-                            if (content == NULL) {
-                                sprintf(response, "%s %s %s\r\n\r\n", request->http_version, "404", "resource not found");
-                                Rio_writen(connfd, response, strlen(response));
-                            } else {
-                                char* last_modified_date = get_last_modified_date(path);
+                                if (content == NULL) {
+                                    sprintf(response, "%s %s %s\r\n\r\n", request->http_version, "404", "resource not found");
+                                    Rio_writen(connfd, response, strlen(response));
+                                } else {
+                                    char* last_modified_date = get_last_modified_date(path);
                             
-                                char* status_code = (char*) malloc(4);
-                                strcpy(status_code, "200");
+                                    char* status_code = (char*) malloc(4);
+                                    strcpy(status_code, "200");
 
-                                if (strcmp("HEAD", request->http_method) == 0) {
-                                    log_info("HEAD is triggered");
-                                    sprintf(response, "%s %s %s\r\nContent-Length: %d\r\nLast-Modified: %s\r\n\r\n",
-                                        request->http_version, status_code, "Reason-Phrase", strlen(content), last_modified_date);
-                                } else if (strcmp("GET", request->http_method) == 0) {
-                                    log_info("HEAD is triggered");
-                                    sprintf(response, "%s %s %s\r\nContent-Length: %d\r\nLast-Modified: %s\r\n\r\n%s",
-                                        request->http_version, status_code, "Reason-Phrase", strlen(content), last_modified_date, content);
+                                    if (strcmp("HEAD", request->http_method) == 0) {
+                                        log_info("HEAD is triggered");
+                                        sprintf(response, "%s %s %s\r\nContent-Length: %d\r\nLast-Modified: %s\r\n\r\n",
+                                            request->http_version, status_code, "Reason-Phrase", strlen(content), last_modified_date);
+                                    } else if (strcmp("GET", request->http_method) == 0) {
+                                        log_info("HEAD is triggered");
+                                        sprintf(response, "%s %s %s\r\nContent-Length: %d\r\nLast-Modified: %s\r\n\r\n%s",
+                                            request->http_version, status_code, "Reason-Phrase", strlen(content), last_modified_date, content);
+                                    }
+                                    log_info("response length is %s with length %d", response,  strlen(response));
+                                    Rio_writen(connfd, response, strlen(response));
                                 }
-                                log_info("response length is %s with length %d", response,  strlen(response));
-                                Rio_writen(connfd, response, strlen(response));
                             }
                         } else {
                             sprintf(response, "%s %s %s\r\n\r\n", request->http_version, "500", "Reason-Phrase");
