@@ -34,7 +34,6 @@ int main(int argc, char **argv) {
     init_pool(listenfd, &pool);
     while (1) {
         pool.ready_set = pool.read_set; // only ready_set is being updated by Select(side effect of Select), read_set is the ones to be watched
-        //TODO: enable Select to be synced with Rio read with buffer
         int nready = Select(pool.maxfd+1, &pool.ready_set, NULL, NULL, &timeout);
 
         if (FD_ISSET(listenfd, &pool.ready_set)) {
@@ -165,12 +164,12 @@ void check_client(pool *p) {
                             log_info("relativepath is %s", relativePath);
                             fprintf(stdout, "%s", relativePath);
                             if (strncmp(relativePath, "cgi", 3) == 0) {
-                                //TODO: call cgi_util.c
                                 log_info("I am in cgi");
                                 content = cgi_start(request->message_body, request->headers);
-                                log_info("content %s", content);
+                                //content = "testingContent";
+                                log_info("echoserver content %s", content);
                                 sprintf(response, "%s %s %s\r\nContent-Length: %d\r\n\r\n%s",
-                                        request->http_version, "400", "Reason-Phrase", strlen(content), content);
+                                        request->http_version, "200", "Reason-Phrase", strlen(content), content);
                                 Rio_writen(connfd, response, strlen(response));
                             } else {
                                 path = (char*) malloc(strlen(relativePath)+1);
@@ -179,7 +178,7 @@ void check_client(pool *p) {
                                 *read files using some FD. 
                                 **/
                                 content = reading_file(path);
-                            
+    
                                 if (content == NULL) {
                                     sprintf(response, "%s %s %s\r\n\r\n", request->http_version, "404", "resource not found");
                                     Rio_writen(connfd, response, strlen(response));

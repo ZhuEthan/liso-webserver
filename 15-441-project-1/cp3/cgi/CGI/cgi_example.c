@@ -215,8 +215,7 @@ int main(int argc, char * argv[])
         //First step could be synchronously read the data. 
         //Second step will be having a mapping from stdout_pipe to clientrio, when data comes in, 
         //see if it is an existing clientrio, if it is, then return to that clientrio. 
-        while((readret = read(stdout_pipe[0], buf, BUF_SIZE-1)) > 0)
-        {
+        while((readret = read(stdout_pipe[0], buf, BUF_SIZE-1)) > 0) {
             buf[readret] = '\0'; /* nul-terminate string */
             fprintf(stdout, "Got from CGI: %s\n", buf);
         }

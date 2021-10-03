@@ -55,7 +55,7 @@ for i in xrange(numTrials):
     socketSubset = random.sample(socketList, numConnections)
     random_string = ""
     for j in xrange(numWritesReads):
-        random_index = 1 #random.randrange(len(GOOD_REQUESTS) + len(BAD_REQUESTS))
+        random_index = 0 #random.randrange(len(GOOD_REQUESTS) + len(BAD_REQUESTS))
         print("random_index")
         print(random_index)
         if random_index < len(GOOD_REQUESTS):
@@ -71,7 +71,7 @@ for i in xrange(numTrials):
         #socketSubset[j].send(random_string)
 
     for j in xrange(numWritesReads):
-        data = socketSubset[j].recv(100)#randomLen[j])
+        data = socketSubset[j].recv(2000)#randomLen[j])
         print("receive data:\n")
         print(data)
         #start_time = time.time()
